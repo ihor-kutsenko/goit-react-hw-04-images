@@ -29,45 +29,45 @@ export default function App() {
       return;
     }
 
-    searchImages(query, page, perPage);
-  }, [query, page, perPage]);
+    async function searchImages() {
+      setIsLoading(true);
 
-  async function searchImages(query, page, perPage) {
-    setIsLoading(true);
+      try {
+        const data = await fetchImages(query, page, perPage);
 
-    try {
-      const data = await fetchImages(query, page, perPage);
+        if (data.hits.length === 0) {
+          setShowLoadMoreBtn(false);
+          toast.info('No images found!', notifyOptions);
+          return;
+        }
+        setImages(images => [...images, ...data.hits]);
+        setTotal(total);
 
-      if (data.hits.length === 0) {
-        setShowLoadMoreBtn(false);
-        toast.info('No images found!', notifyOptions);
-        return;
+        if (data.hits.length > 0 && page === 1) {
+          toast.success(
+            `Hooray! We found ${data.totalHits} images.`,
+            notifyOptions
+          );
+        }
+        if (data.hits.length < perPage) {
+          setShowLoadMoreBtn(false);
+          setPerPage(perPage);
+          toast.info(
+            "We're sorry, but you've reached the end of search results.",
+            notifyOptions
+          );
+        } else {
+          setShowLoadMoreBtn(true);
+        }
+      } catch (error) {
+        setError(error);
+      } finally {
+        setIsLoading(false);
       }
-      setImages(images => [...images, ...data.hits]);
-      setTotal(total);
-
-      if (data.hits.length > 0 && page === 1) {
-        toast.success(
-          `Hooray! We found ${data.totalHits} images.`,
-          notifyOptions
-        );
-      }
-      if (data.hits.length < perPage) {
-        setShowLoadMoreBtn(false);
-        setPerPage(perPage);
-        toast.info(
-          "We're sorry, but you've reached the end of search results.",
-          notifyOptions
-        );
-      } else {
-        setShowLoadMoreBtn(true);
-      }
-    } catch (error) {
-      setError(error);
-    } finally {
-      setIsLoading(false);
     }
-  }
+
+    searchImages();
+  }, [query, page, perPage, total]);
 
   const onFormSearh = query => {
     setQuery(prevState => {
