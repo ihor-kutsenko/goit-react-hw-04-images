@@ -25,7 +25,9 @@ export default function App() {
   const [perPage, setPerPage] = useState(12);
 
   useEffect(() => {
-    if (!query) return;
+    if (!query) {
+      return;
+    }
 
     searchImages(query, page, perPage);
   }, [query, page, perPage]);
@@ -42,7 +44,7 @@ export default function App() {
         return;
       }
       setImages(images => [...images, ...data.hits]);
-      setTotal(data.totalHits);
+      setTotal(total);
 
       if (data.hits.length > 0 && page === 1) {
         toast.success(
@@ -52,6 +54,7 @@ export default function App() {
       }
       if (data.hits.length < perPage) {
         setShowLoadMoreBtn(false);
+        setPerPage(perPage);
         toast.info(
           "We're sorry, but you've reached the end of search results.",
           notifyOptions
@@ -66,45 +69,18 @@ export default function App() {
     }
   }
 
-  // componentDidUpdate(prevProps, prevState) {
-  //   const { query, page } = this.state;
-  //   if ((query && prevState.query !== query) || page > prevState.page) {
-  //     this.searchImages(query, page);
-  //   }
-  //   if (prevState.query !== query) {
-  //     this.setState({
-  //       images: [],
-  //     });
-  //   }
-  // }
-
   const onFormSearh = query => {
     setQuery(prevState => {
       if (prevState.query === query) return prevState;
 
-      // query,
-      // page: 1,
       setQuery(query);
       setPage(1);
-      // setImages([]);
-      return query;
+      setImages([]);
     });
   };
 
   const onLoadMore = () => {
-    setPage(
-      prevState => prevState.page + 1,
-
-      () => {
-        if (images.length < perPage) {
-          setShowLoadMoreBtn(false);
-          toast.info(
-            "We're sorry, but you've reached the end of search results.",
-            notifyOptions
-          );
-        }
-      }
-    );
+    setPage(prevState => prevState + 1);
   };
 
   const openModal = (largeImage, imagesTags) => {
