@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import notifyOptions from './NotifyOptions/NotifyOptions';
@@ -11,51 +11,38 @@ import Loader from './Loader/Loader';
 import LoadMoreBtn from './Button/Button';
 import Modal from './Modal/Modal';
 
-export class App extends Component {
-  state = {
-    query: '',
-    page: 1,
-    images: [],
-    isLoading: false,
-    error: null,
-    showLoadMoreBtn: false,
-    modalOpen: false,
-    largeImageURL: '',
-    imageTags: null,
-    total: 0,
-    perPage: 12,
-  };
+export default function App() {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showLoadMoreBtn, setShowLoadMoreBtn] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [largeImage, setLargeImage] = useState('');
+  const [imagesTags, setImagesTags] = useState(null);
+  const [total, setTotal] = useState(0);
+  const [perPage, setPerPage] = useState(12);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
-    if ((query && prevState.query !== query) || page > prevState.page) {
-      this.searchImages(query, page);
-    }
-    if (prevState.query !== query) {
-      this.setState({
-        images: [],
-      });
-    }
-  }
+  useEffect(() => {
+    if (!query) return;
 
-  async searchImages() {
-    const { query, page, perPage } = this.state;
+    searchImages(query, page, perPage);
+  }, [query, page, perPage]);
 
-    this.setState({ isLoading: true });
+  async function searchImages(query, page, perPage) {
+    setIsLoading(true);
+
     try {
       const data = await fetchImages(query, page, perPage);
 
       if (data.hits.length === 0) {
-        this.setState({ showLoadMoreBtn: false });
+        setShowLoadMoreBtn(false);
         toast.info('No images found!', notifyOptions);
         return;
       }
-      this.setState(({ images }) => {
-        return {
-          images: [...images, ...data.hits],
-          total: data.totalHits,
-        };
-      });
+      setImages(images => [...images, ...data.hits]);
+      setTotal(data.totalHits);
 
       if (data.hits.length > 0 && page === 1) {
         toast.success(
@@ -64,41 +51,53 @@ export class App extends Component {
         );
       }
       if (data.hits.length < perPage) {
-        this.setState({ showLoadMoreBtn: false });
+        setShowLoadMoreBtn(false);
         toast.info(
           "We're sorry, but you've reached the end of search results.",
           notifyOptions
         );
       } else {
-        this.setState({ showLoadMoreBtn: true });
+        setShowLoadMoreBtn(true);
       }
     } catch (error) {
-      this.setState({ error });
+      setError(error);
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
   }
 
-  onFormSearh = query => {
-    this.setState(prevState => {
-      if (prevState.query === query) {
-        return;
-      } else
-        return {
-          query,
-          page: 1,
-        };
+  // componentDidUpdate(prevProps, prevState) {
+  //   const { query, page } = this.state;
+  //   if ((query && prevState.query !== query) || page > prevState.page) {
+  //     this.searchImages(query, page);
+  //   }
+  //   if (prevState.query !== query) {
+  //     this.setState({
+  //       images: [],
+  //     });
+  //   }
+  // }
+
+  const onFormSearh = query => {
+    setQuery(prevState => {
+      if (prevState.query === query) return prevState;
+
+      // query,
+      // page: 1,
+      setQuery(query);
+      setPage(1);
+      // setImages([]);
+      return query;
     });
   };
 
-  onLoadMore = () => {
-    this.setState(
-      prevState => ({
-        page: prevState.page + 1,
-      }),
+  const onLoadMore = () => {
+    setPage(
+      prevState => prevState.page + 1,
+
       () => {
-        if (this.state.images.length < this.state.perPage) {
-          this.setState({ showLoadMoreBtn: false });
+        if (images.length < perPage) {
+          setShowLoadMoreBtn(false);
           toast.info(
             "We're sorry, but you've reached the end of search results.",
             notifyOptions
@@ -108,52 +107,33 @@ export class App extends Component {
     );
   };
 
-  openModal = (largeImageURL, imageTags) => {
-    this.setState({
-      modalOpen: true,
-      largeImageURL,
-      imageTags,
-      isLoading: true,
-    });
+  const openModal = (largeImage, imagesTags) => {
+    setModalOpen(true);
+    setLargeImage(largeImage);
+    setImagesTags(imagesTags);
+    setIsLoading(true);
   };
 
-  closeModal = () => {
-    this.setState({
-      modalOpen: false,
-      largeImageURL: '',
-      isLoading: false,
-    });
+  const closeModal = () => {
+    setModalOpen(false);
+    setLargeImage('');
+    setIsLoading(false);
   };
 
-  render() {
-    const {
-      images,
-      isLoading,
-      showLoadMoreBtn,
-      error,
-      largeImageURL,
-      modalOpen,
-      imageTags,
-    } = this.state;
-    return (
-      <>
-        <Searchbar onSubmit={this.onFormSearh} />
-        {images.length === 0 && <StartText />}
-        {error && toast.error('Please try again later!', notifyOptions)}
-        <Container>
-          {isLoading && <Loader />}
-          <ImageGallery images={images} onClick={this.openModal} />
-          {showLoadMoreBtn && <LoadMoreBtn onLoadMore={this.onLoadMore} />}
-          {modalOpen && (
-            <Modal
-              src={largeImageURL}
-              alt={imageTags}
-              onClose={this.closeModal}
-            ></Modal>
-          )}
-        </Container>
-        <ToastContainer />
-      </>
-    );
-  }
+  return (
+    <>
+      <Searchbar onSubmit={onFormSearh} />
+      {images.length === 0 && <StartText />}
+      {error && toast.error('Please try again later!', notifyOptions)}
+      <Container>
+        {isLoading && <Loader />}
+        <ImageGallery images={images} onClick={openModal} />
+        {showLoadMoreBtn && <LoadMoreBtn onLoadMore={onLoadMore} />}
+        {modalOpen && (
+          <Modal src={largeImage} alt={imagesTags} onClose={closeModal}></Modal>
+        )}
+      </Container>
+      <ToastContainer />
+    </>
+  );
 }
